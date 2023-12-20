@@ -1,8 +1,10 @@
 const express=require("express");
 const rateLimit=require("express-rate-limit")
+const cron = require('node-cron')
 const { connection } = require("./config/db");
 const { userRouter } = require("./routes/userroute");
 const { quizRouter } = require("./routes/quizRoute");
+const { Quiz } = require("./models/quizModel");
 const app=express()
 require("dotenv").config()
 
@@ -19,6 +21,16 @@ const limiter=rateLimit({
 
 
 app.use(limiter)
+cron.schedule('* * * * *', () => {
+  Quiz.updateMany(
+    { endDate: { $lt: new Date() } },
+    { $set: { status: 'finished' } },
+    (err, result) => {
+      if (err) console.error(err);
+      console.log('Quiz status updated:', result.nModified, 'quizzes');
+    }
+  );
+});
 app.use("/user",userRouter)
 app.use("/",quizRouter)
 
